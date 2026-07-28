@@ -3,10 +3,17 @@
 import gsap from "gsap";
 import { useEffect, useRef, useState } from "react";
 
+const NAV_ITEMS = [
+  { name: "About", id: "about-section" },
+  { name: "Works", id: "works-section" },
+  { name: "Skills", id: "skills-section" },
+  { name: "Contact", id: "contact-section" },
+];
+
 export default function Navbar() {
   const [isVisible, setIsVisible] = useState(false);
   const lineRef = useRef<HTMLDivElement>(null);
-  const logoRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLAnchorElement | null>(null);
   const linksRef = useRef<(HTMLAnchorElement | null)[]>([]);
   const tl = useRef<gsap.core.Timeline | null>(null);
 
@@ -15,7 +22,7 @@ export default function Navbar() {
       const section = document.getElementById("content-section");
       if (section) {
         const rect = section.getBoundingClientRect();
-        // Show navbar when the top of the content section reaches the top of the viewport
+        // Show navbar when the top of the content section reaches near the top of the viewport
         if (rect.top <= 200) {
           setIsVisible(true);
         } else {
@@ -74,7 +81,30 @@ export default function Navbar() {
     }
   }, [isVisible]);
 
-  const navLinks = ["About", "Works", "Contact"];
+  const handleNavClick = (e: React.MouseEvent, sectionId: string) => {
+    e.preventDefault();
+    if (sectionId === "hero") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const targetEl = document.getElementById(sectionId);
+    if (!targetEl) return;
+
+    // Target is inside ParallaxHero's content-section which starts at 150vh (1.5 * vh)
+    // and scrolls at 0.5x speed.
+    const vh = window.innerHeight;
+    const contentStartOffsetPx = vh * 1.5;
+    const offsetTop = targetEl.offsetTop;
+
+    // Formula: targetScrolledPx = (1.5 * vh + offsetTop) / 0.5
+    const targetScrolledPx = (contentStartOffsetPx + offsetTop) / 0.5;
+
+    window.scrollTo({
+      top: targetScrolledPx,
+      behavior: "smooth",
+    });
+  };
 
   return (
     <nav className="fixed top-0 left-0 w-full z-[100] px-8 md:px-16 pt-8 pb-4 text-[#e8dcc8]">
@@ -87,26 +117,29 @@ export default function Navbar() {
 
         {/* Left Logo */}
         <div className="overflow-hidden">
-          <div
+          <a
+            href="#hero"
+            onClick={(e) => handleNavClick(e, "hero")}
             ref={logoRef}
-            className="text-2xl tracking-widest font-chomsky uppercase translate-y-[100%]"
+            className="block text-2xl tracking-widest font-chomsky uppercase translate-y-[100%] cursor-pointer hover:opacity-80 transition-opacity"
           >
             Rizano
-          </div>
+          </a>
         </div>
 
         {/* Right Links */}
         <div className="flex gap-8 text-sm md:text-base font-light tracking-wide uppercase">
-          {navLinks.map((link, idx) => (
-            <div key={link} className="overflow-hidden">
+          {NAV_ITEMS.map((item, idx) => (
+            <div key={item.name} className="overflow-hidden">
               <a
-                href={`#${link.toLowerCase()}`}
+                href={`#${item.id}`}
+                onClick={(e) => handleNavClick(e, item.id)}
                 ref={(el) => {
                   linksRef.current[idx] = el;
                 }}
-                className="inline-block translate-y-[100%] hover:opacity-70 transition-opacity"
+                className="inline-block translate-y-[100%] hover:opacity-70 transition-opacity cursor-pointer"
               >
-                {link}
+                {item.name}
               </a>
             </div>
           ))}

@@ -301,7 +301,7 @@ export default function LiquidReveal({
   }, [topImage]);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black flex flex-col md:flex-row mt-48">
+    <div id="about-section" className="relative w-full h-screen overflow-hidden bg-black flex flex-col md:flex-row mt-48">
       {/* AREA KIRI: Ruang untuk Teks */}
       <div className="w-full md:w-[40%] h-auto md:h-full flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12 md:py-0 z-10 pointer-events-none">
         <h1 className="text-[#e8dcc8] text-5xl md:text-6xl lg:text-[150px] font-chomsky leading-tight">

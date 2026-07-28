@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
 
-const TOTAL_FRAMES = 180;
+export const TOTAL_FRAMES = 180;
 const FRAME_PATH = "/assets/play-on-scroll/frame_";
 
 const framePaths = Array.from({ length: TOTAL_FRAMES }, (_, i) => {
@@ -51,6 +51,36 @@ const SOCIAL_LINKS = [
   },
 ];
 
+// Module-level cache for preloaded images
+let cachedImages: HTMLImageElement[] | null = null;
+let preloadPromise: Promise<HTMLImageElement[]> | null = null;
+
+export function preloadContactFrames(onItemLoaded?: () => void): Promise<HTMLImageElement[]> {
+  if (cachedImages) return Promise.resolve(cachedImages);
+  if (preloadPromise) return preloadPromise;
+
+  let loadedCount = 0;
+  const images: HTMLImageElement[] = [];
+
+  preloadPromise = new Promise((resolve) => {
+    framePaths.forEach((src, i) => {
+      const img = new Image();
+      img.onload = img.onerror = () => {
+        loadedCount++;
+        if (onItemLoaded) onItemLoaded();
+        if (loadedCount === TOTAL_FRAMES) {
+          cachedImages = images;
+          resolve(images);
+        }
+      };
+      img.src = src;
+      images[i] = img;
+    });
+  });
+
+  return preloadPromise;
+}
+
 // Jarak scroll window (dalam pixel) selama ContactSection berada dalam posisi ter-pin
 export const CONTACT_PIN_SCROLL_PX = 2400;
 
@@ -64,21 +94,17 @@ export default function ContactSection() {
 
   // Preload images
   useEffect(() => {
-    let loadedCount = 0;
-    const images: HTMLImageElement[] = [];
+    if (cachedImages) {
+      imagesRef.current = cachedImages;
+      setImagesLoaded(true);
+      drawFrame(0);
+      return;
+    }
 
-    framePaths.forEach((src, i) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        loadedCount++;
-        if (loadedCount === TOTAL_FRAMES) {
-          imagesRef.current = images;
-          setImagesLoaded(true);
-          drawFrame(0);
-        }
-      };
-      images[i] = img;
+    preloadContactFrames().then((images) => {
+      imagesRef.current = images;
+      setImagesLoaded(true);
+      drawFrame(0);
     });
   }, []);
 

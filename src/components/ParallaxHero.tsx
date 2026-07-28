@@ -5,7 +5,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { useEffect, useRef, useState } from "react";
 
-import { CONTACT_PIN_SCROLL_PX } from "./ContactSection";
+import { CONTACT_PIN_SCROLL_PX, preloadContactFrames, TOTAL_FRAMES } from "./ContactSection";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -117,6 +117,7 @@ export default function ParallaxHero({
   const contentLayerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
+  const [progress, setProgress] = useState(0);
 
   // Measure content height to ensure enough scroll room in the spacer
   useEffect(() => {
@@ -158,19 +159,31 @@ export default function ParallaxHero({
     };
   }, []);
 
-  // Preload images
+  // Preload all images (Parallax layers + ContactSection 180 video frames)
   useEffect(() => {
-    const promises = layers.map(
+    let loadedCount = 0;
+    const totalItems = layers.length + TOTAL_FRAMES;
+
+    const incrementProgress = () => {
+      loadedCount++;
+      setProgress(Math.min(100, Math.floor((loadedCount / totalItems) * 100)));
+    };
+
+    const layerPromises = layers.map(
       (layer) =>
         new Promise<void>((resolve) => {
           const img = new Image();
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
+          img.onload = img.onerror = () => {
+            incrementProgress();
+            resolve();
+          };
           img.src = layer.src;
         }),
     );
 
-    Promise.all(promises).then(() => {
+    const contactPromise = preloadContactFrames(incrementProgress);
+
+    Promise.all([...layerPromises, contactPromise]).then(() => {
       setTimeout(() => setIsLoaded(true), 300);
     });
   }, []);
@@ -277,13 +290,24 @@ export default function ParallaxHero({
     <>
       {/* Loading Screen */}
       <div
-        className={`fixed top-0 left-0 w-full h-full bg-black flex items-center justify-center z-[9999] transition-all duration-800 ${
+        className={`fixed top-0 left-0 w-full h-full bg-black flex flex-col items-center justify-center z-[9999] transition-all duration-800 ${
           isLoaded ? "opacity-0 invisible pointer-events-none" : ""
         }`}
       >
-        <span className="font-chomsky text-2xl text-[#e8dcc8] tracking-[0.3em] animate-pulse">
+        <span className="font-chomsky text-3xl md:text-5xl text-[#e8dcc8] tracking-[0.3em] animate-pulse mb-6">
           RIZANO
         </span>
+        <div className="flex flex-col items-center gap-3 w-48">
+          <div className="w-full h-[2px] bg-[#e8dcc8]/20 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#e8dcc8] transition-all duration-150 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="text-xs font-mono tracking-widest text-[#e8dcc8]/60">
+            {progress}%
+          </span>
+        </div>
       </div>
 
       {/* Fixed parallax background — stays in place while page scrolls over it */}
