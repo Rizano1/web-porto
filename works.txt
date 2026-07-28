@@ -1,0 +1,36 @@
+1. automasi inspeksi visual dengan menggunakan LLM, dan quadruped robot.
+
+Proyek ini mengimplementasikan sistem inspeksi visual otonom tingkat lanjut dengan 
+menggunakan robot berkaki empat (quadruped robot) DeepRobotics Jueying Lite 3 dan 
+Large Multimodal Model (LMM) Google Gemini sebagai otak logika pusat (reasoning engine). 
+
+Tujuan utama dari sistem ini adalah menjembatani komunikasi antara operator manusia 
+dan robot melalui perintah bahasa alami (natural language). Agen kecerdasan buatan 
+(AI Agent) secara otonom merencanakan, melakukan pencarian informasi pendukung, 
+dan mengeksekusi misi inspeksi. Sistem ini mengintegrasikan dokumen Standard 
+Operating Procedure (SOP) secara dinamis menggunakan pendekatan Retrieval-Augmented 
+Generation (RAG) untuk melakukan inspeksi visual dan mendeteksi anomali pada objek 
+secara real-time melalui kamera robot. Selain itu, sistem menerapkan mekanisme 
+Human-in-the-Loop (HITL) untuk memastikan operator dapat memvalidasi rencana 
+maupun hasil tindakan robot sebelum langkah selanjutnya dieksekusi. pada sistem ini juga
+terdapat webnya,dimana chatbot LLM untuk mengontrol robot dapat diakses melalui web, dan juga terdapat fitur untuk mengupload dokumen SOP, dan juga terdapat fitur untuk melihat hasil capture kamera inspeksi robot.
+
+ini adalah projek akhir saya, yang saka kerjakan sendiri.
+tech stack: ROS, Python, LLM, quadruped robot, RAG, MCP, next js, tailwind, react, fastapi.
+
+2. jagoteknik, ini adalah sebuah platform bimbinga belajar on-demand, online, dan offline, yang berfokus pada mata kuliah teknik.
+saya disini berberan dalam tim sebagai front-end developer
+tech stack: vite js, tailwind, react, react query.
+
+3. Adex, adalah sebuah ai assistant pada sistem ERP perusahaan , yang berfungsi untuk membantu user dalam mengoperasikan sistem ERP, dengan memanfaatkan LLM untuk memahami perintah user dan memberikan jawaban yang relevan. 
+pada sistem ini LLM diberikan tools melalui MCP, dimana tools ini berfungsi untuk memberikan akses ke LLM untuk mengakses data-data yang ada pada sistem ERP, sehingga LLM dapat memberikan jawaban yang relevan terhadap pertanyaan user.
+posisi saya disini adalah sebagai ai engineer, yang berfokus pada pengembangan LLM dan tools yang diberikan kepada LLM.
+tech stack: LLM, MCP, Python, FastAPI, RAG.
+
+4. SRE ITS, adalah sebuah web about page untuk organisasi SRE ITS, yang berfungsi untuk memberikan informasi tentang organisasi SRE ITS, seperti visi misi, struktur organisasi, dan kegiatan-kegiatan yang dilakukan oleh organisasi ini.
+posisi saya disini adalah sebagai front-end developer, yang berfokus pada pengembangan tampilan web, dan mengimplementasikan animasi-animasi yang menarik untuk meningkatkan pengalaman pengguna.
+tech stack: Next js, Tailwind, React, GSAP.
+
+5. MAGE X, adalah sebuah web unuk event lomba tahunan teknik komputer its MAGE X, yang berfungsi untuk memberikan informasi tentang event MAGE X, seperti jadwal, pendaftaran. 
+posisi saya disini adalah sebagai front-end developer, sekaligus project manager
+tech stack: vite js, Tailwind, React, Framer motion, notion.
