@@ -5,7 +5,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { useEffect, useRef, useState } from "react";
 
-import { CONTACT_PIN_SCROLL_PX, preloadContactFrames, TOTAL_FRAMES } from "./ContactSection";
+import { preloadContactFrames, TOTAL_FRAMES } from "@/lib/contactFrames";
+import {
+  CONTACT_PIN_SCROLL_PX,
+  CONTENT_SCROLL_SPEED,
+  CONTENT_TOP_CSS,
+} from "@/lib/scroll";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -32,6 +37,11 @@ interface LayerConfig {
   verticalOffset: number;
   /** Scale factor for this layer (1 = original size, >1 = zoom in, <1 = zoom out) */
   scale: number;
+  /**
+   * On portrait screens, render the image this wide (% of viewport width) instead of
+   * object-cover, so elements near the edges (spheres, clouds) aren't cropped away.
+   */
+  portraitWidth?: number;
 }
 
 const layers: LayerConfig[] = [
@@ -50,6 +60,7 @@ const layers: LayerConfig[] = [
     tiltFactor: 0.3,
     verticalOffset: 0,
     scale: 1.01,
+    portraitWidth: 170,
   },
   {
     src: "/assets/layer_3.png",
@@ -58,6 +69,7 @@ const layers: LayerConfig[] = [
     tiltFactor: 0.6,
     verticalOffset: 5,
     scale: 1,
+    portraitWidth: 170,
   },
   {
     src: "/assets/layer_4.png",
@@ -81,28 +93,6 @@ const RIZANO_SCROLL_SPEED = 0.2;
 const RIZANO_TILT_FACTOR = 0;
 /** Vertical offset for the RIZANO text layer (percentage) */
 const RIZANO_VERTICAL_OFFSET = -15;
-
-// ============================================================
-// PARALLAX SCROLL TUNING
-// ============================================================
-/**
- * CONTENT_SCROLL_SPEED — The speed at which the rest of the website
- * (black section) scrolls up.
- *
- * Set to 0.5 to exactly match Layer 5 (the foreground).
- * Because it starts at 100vh (bottom of screen) and moves at 0.5x speed,
- * you must scroll exactly 200vh for it to reach the top of the screen.
- */
-const CONTENT_SCROLL_SPEED = 0.5;
-
-/**
- * CONTENT_START_OFFSET — Where the black section begins vertically.
- *
- * 100 = Starts exactly at the bottom of the screen.
- * 150 = Starts further down (matches Layer 5 which has verticalOffset: 50).
- * Tweak this if there is still a gap or overlap between Layer 5 and the black section.
- */
-const CONTENT_START_OFFSET = 150; // in vh units
 
 export default function ParallaxHero({
   children,
@@ -147,14 +137,14 @@ export default function ParallaxHero({
       smoothWheel: true,
     });
 
+    const raf = (time: number) => lenis.raf(time * 1000);
+
     lenis.on("scroll", ScrollTrigger.update);
-    gsap.ticker.add((time) => {
-      lenis.raf(time * 1000);
-    });
+    gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
 
     return () => {
-      gsap.ticker.remove(lenis.raf as unknown as gsap.TickerCallback);
+      gsap.ticker.remove(raf);
       lenis.destroy();
     };
   }, []);
@@ -294,17 +284,17 @@ export default function ParallaxHero({
           isLoaded ? "opacity-0 invisible pointer-events-none" : ""
         }`}
       >
-        <span className="font-chomsky text-3xl md:text-5xl text-[#e8dcc8] tracking-[0.3em] animate-pulse mb-6">
+        <span className="font-chomsky text-3xl md:text-5xl text-cream tracking-[0.3em] animate-pulse mb-6">
           RIZANO
         </span>
         <div className="flex flex-col items-center gap-3 w-48">
-          <div className="w-full h-[2px] bg-[#e8dcc8]/20 rounded-full overflow-hidden">
+          <div className="w-full h-[2px] bg-cream/20 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#e8dcc8] transition-all duration-150 ease-out"
+              className="h-full bg-cream transition-all duration-150 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <span className="text-xs font-mono tracking-widest text-[#e8dcc8]/60">
+          <span className="text-xs font-mono tracking-widest text-cream/60">
             {progress}%
           </span>
         </div>
@@ -326,15 +316,29 @@ export default function ParallaxHero({
               ref={(el) => {
                 layerRefs.current[index] = el;
               }}
-              className="absolute top-0 left-0 w-full h-full will-change-transform pointer-events-none"
-              style={{ zIndex: layer.zIndex, top: `${layer.verticalOffset}%` }}
+              // Positioned on the shared 16:9 scene so layers stay aligned at any aspect ratio
+              className="absolute left-0 w-full will-change-transform pointer-events-none"
+              style={{
+                zIndex: layer.zIndex,
+                top: `calc(var(--scene-top) + var(--scene-h) * ${layer.verticalOffset / 100})`,
+                height: "var(--scene-h)",
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={layer.src}
-                alt={`Parallax layer ${index + 1}`}
+                alt=""
                 draggable={false}
-                className="w-full h-full object-cover block"
+                className={`w-full h-full object-cover object-top block ${
+                  layer.portraitWidth
+                    ? "portrait:absolute portrait:top-0 portrait:left-1/2 portrait:-translate-x-1/2 portrait:max-w-none portrait:w-[var(--portrait-width)] portrait:h-auto"
+                    : ""
+                }`}
+                style={
+                  layer.portraitWidth
+                    ? ({ "--portrait-width": `${layer.portraitWidth}%` } as React.CSSProperties)
+                    : undefined
+                }
               />
             </div>
           ))}
@@ -345,7 +349,7 @@ export default function ParallaxHero({
             className="absolute top-0 left-0 w-full h-full flex items-center justify-center z-[35] pointer-events-none will-change-transform"
             style={{ top: `${RIZANO_VERTICAL_OFFSET}%` }}
           >
-            <h1 className="font-chomsky text-[clamp(4rem,12vw,12rem)] text-[#e8dcc8] tracking-[0.05em] select-none relative [text-shadow:0_0_40px_rgba(0,0,0,0.8),0_0_80px_rgba(0,0,0,0.6),0_4px_12px_rgba(0,0,0,0.9),0_0_120px_rgba(232,220,200,0.08)] after:content-[''] after:absolute after:-bottom-4 after:left-1/2 after:-translate-x-1/2 after:w-[80%] after:h-[2px] after:bg-gradient-to-r after:from-transparent after:via-[#e8dcc8]/40 after:to-transparent">
+            <h1 className="font-chomsky text-[clamp(4rem,12vw,12rem)] text-cream tracking-[0.05em] select-none relative [text-shadow:0_0_40px_rgba(0,0,0,0.8),0_0_80px_rgba(0,0,0,0.6),0_4px_12px_rgba(0,0,0,0.9),0_0_120px_rgba(232,220,200,0.08)] after:content-[''] after:absolute after:-bottom-4 after:left-1/2 after:-translate-x-1/2 after:w-[80%] after:h-[2px] after:bg-gradient-to-r after:from-transparent after:via-cream/40 after:to-transparent">
               RIZANO
             </h1>
           </div>
@@ -355,7 +359,7 @@ export default function ParallaxHero({
             <div
               ref={contentLayerRef}
               className="absolute bg-black left-0 w-full will-change-transform z-[45]"
-              style={{ top: `${CONTENT_START_OFFSET}vh` }}
+              style={{ top: CONTENT_TOP_CSS }}
             >
               {children}
             </div>
@@ -369,12 +373,12 @@ export default function ParallaxHero({
       {/* Scroll spacer — provides the scroll distance for the parallax effect.
           We subtract 100vh so scrolling ends when content bottom reaches viewport bottom,
           and add (CONTACT_PIN_SCROLL_PX * 0.5) to account for the pinned contact section.
-          Formula: ((CONTENT_START_OFFSET - 100)vh + contentHeight + pinDistance) / CONTENT_SCROLL_SPEED */}
+          Formula: (contentTop - 100vh + contentHeight + pinDistance) / CONTENT_SCROLL_SPEED */}
       <div
         ref={spacerRef}
         className="relative w-full z-0"
         style={{
-          height: `calc((${CONTENT_START_OFFSET - 100}vh + ${
+          height: `calc((${CONTENT_TOP_CSS} - 100vh + ${
             contentHeight > 0 ? contentHeight + CONTACT_PIN_SCROLL_PX * 0.5 : 0
           }px) / ${CONTENT_SCROLL_SPEED})`,
         }}

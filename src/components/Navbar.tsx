@@ -3,51 +3,34 @@
 import gsap from "gsap";
 import { useEffect, useRef, useState } from "react";
 
-const NAV_ITEMS = [
-  { name: "About", id: "about-section" },
-  { name: "Works", id: "works-section" },
-  { name: "Skills", id: "skills-section" },
-  { name: "Contact", id: "contact-section" },
-];
+import { NAV_ITEMS } from "@/data/site";
+import { contentOffsetToScrollY } from "@/lib/scroll";
+
+/** Show the navbar once the content section is this close (px) to the top of the viewport. */
+const REVEAL_THRESHOLD_PX = 200;
 
 export default function Navbar() {
   const [isVisible, setIsVisible] = useState(false);
   const lineRef = useRef<HTMLDivElement>(null);
-  const logoRef = useRef<HTMLAnchorElement | null>(null);
+  const logoRef = useRef<HTMLAnchorElement>(null);
   const linksRef = useRef<(HTMLAnchorElement | null)[]>([]);
   const tl = useRef<gsap.core.Timeline | null>(null);
 
+  // Lenis drives scrolling through the GSAP ticker, so poll there instead of on "scroll"
   useEffect(() => {
-    const handleScroll = () => {
+    const checkVisibility = () => {
       const section = document.getElementById("content-section");
-      if (section) {
-        const rect = section.getBoundingClientRect();
-        // Show navbar when the top of the content section reaches near the top of the viewport
-        if (rect.top <= 200) {
-          setIsVisible(true);
-        } else {
-          setIsVisible(false);
-        }
-      }
+      if (!section) return;
+      setIsVisible(section.getBoundingClientRect().top <= REVEAL_THRESHOLD_PX);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    const tickerHandler = () => {
-      handleScroll();
-    };
-    gsap.ticker.add(tickerHandler);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      gsap.ticker.remove(tickerHandler);
-    };
+    gsap.ticker.add(checkVisibility);
+    return () => gsap.ticker.remove(checkVisibility);
   }, []);
 
   useEffect(() => {
-    // Initialize GSAP timeline
-    tl.current = gsap.timeline({ paused: true });
-
-    tl.current
+    tl.current = gsap
+      .timeline({ paused: true })
       .to(lineRef.current, {
         scaleX: 1,
         duration: 0.8,
@@ -65,20 +48,13 @@ export default function Navbar() {
       );
 
     return () => {
-      if (tl.current) {
-        tl.current.kill();
-      }
+      tl.current?.kill();
     };
   }, []);
 
   useEffect(() => {
-    if (tl.current) {
-      if (isVisible) {
-        tl.current.play();
-      } else {
-        tl.current.reverse();
-      }
-    }
+    if (isVisible) tl.current?.play();
+    else tl.current?.reverse();
   }, [isVisible]);
 
   const handleNavClick = (e: React.MouseEvent, sectionId: string) => {
@@ -91,46 +67,35 @@ export default function Navbar() {
     const targetEl = document.getElementById(sectionId);
     if (!targetEl) return;
 
-    // Target is inside ParallaxHero's content-section which starts at 150vh (1.5 * vh)
-    // and scrolls at 0.5x speed.
-    const vh = window.innerHeight;
-    const contentStartOffsetPx = vh * 1.5;
-    const offsetTop = targetEl.offsetTop;
-
-    // Formula: targetScrolledPx = (1.5 * vh + offsetTop) / 0.5
-    const targetScrolledPx = (contentStartOffsetPx + offsetTop) / 0.5;
-
     window.scrollTo({
-      top: targetScrolledPx,
+      top: contentOffsetToScrollY(targetEl.offsetTop),
       behavior: "smooth",
     });
   };
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-[100] px-8 md:px-16 pt-8 pb-4 text-[#e8dcc8]">
+    <nav className="fixed top-0 left-0 w-full z-[100] px-5 sm:px-8 md:px-16 pt-6 md:pt-8 pb-4 text-cream">
       <div className="relative flex justify-between items-end pb-4">
-        {/* The thin line that appears from the left */}
+        {/* Thin line that grows in from the left */}
         <div
           ref={lineRef}
-          className="absolute bottom-0 left-0 w-full h-[1px] bg-[#e8dcc8]/40 origin-left scale-x-0"
+          className="absolute bottom-0 left-0 w-full h-[1px] bg-cream/40 origin-left scale-x-0"
         />
 
-        {/* Left Logo */}
         <div className="overflow-hidden">
           <a
             href="#hero"
             onClick={(e) => handleNavClick(e, "hero")}
             ref={logoRef}
-            className="block text-2xl tracking-widest font-chomsky uppercase translate-y-[100%] cursor-pointer hover:opacity-80 transition-opacity"
+            className="block text-xl md:text-2xl tracking-widest font-chomsky uppercase translate-y-[100%] cursor-pointer hover:opacity-80 transition-opacity"
           >
             Rizano
           </a>
         </div>
 
-        {/* Right Links */}
-        <div className="flex gap-8 text-sm md:text-base font-light tracking-wide uppercase">
+        <div className="flex gap-3 sm:gap-6 md:gap-8 text-xs sm:text-sm md:text-base font-light tracking-wide uppercase">
           {NAV_ITEMS.map((item, idx) => (
-            <div key={item.name} className="overflow-hidden">
+            <div key={item.id} className="overflow-hidden">
               <a
                 href={`#${item.id}`}
                 onClick={(e) => handleNavClick(e, item.id)}

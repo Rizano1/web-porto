@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { ABOUT_PHRASES } from "@/data/site";
 import TextScramble from "./TextScramble";
 
 interface LiquidRevealProps {
@@ -38,6 +39,9 @@ export default function LiquidReveal({
     topImg.src = topImage;
 
     // Draw params for object-contain (recomputed on resize)
+    // Brush size relative to the desktop layout (image ~672px wide), so small screens get a smaller brush
+    let brushScale = 1;
+
     let drawX = 0,
       drawY = 0,
       drawW = 0,
@@ -62,6 +66,8 @@ export default function LiquidReveal({
         drawY = 0;
       }
 
+      brushScale = Math.min(1, Math.max(0.5, drawW / 672));
+
       // Pre-render the contained image to an offscreen canvas
       offscreen = document.createElement("canvas");
       offscreen.width = cw;
@@ -76,7 +82,8 @@ export default function LiquidReveal({
       offCtx.filter = "brightness(0)";
 
       // 2. Gambar siluet hitam digeser ke 8 arah (membentuk outline yang sangat tebal & solid)
-      const outlineThickness = 20; // Ketebalan outline dalam piksel, naikkan jika kurang tebal
+      // Ketebalan outline relatif terhadap lebar gambar (~20px di desktop)
+      const outlineThickness = Math.max(4, drawW * 0.03);
       const directions = [
         [-1, -1],
         [1, -1],
@@ -135,9 +142,9 @@ export default function LiquidReveal({
     const mouse = { x: -9999, y: -9999, active: false };
     const smooth = { x: -9999, y: -9999 };
     const trail: TrailPoint[] = [];
-    let lastActiveTime = performance.now();
 
-    const handleMouseMove = (e: MouseEvent) => {
+    // Pointer events cover mouse, pen and touch
+    const handlePointerMove = (e: PointerEvent) => {
       const rect = container.getBoundingClientRect();
       const currentX = e.clientX - rect.left;
       const currentY = e.clientY - rect.top;
@@ -152,15 +159,14 @@ export default function LiquidReveal({
       mouse.x = currentX;
       mouse.y = currentY;
       mouse.active = true;
-      lastActiveTime = performance.now();
     };
-    const handleMouseLeave = () => {
+    const handlePointerLeave = () => {
       mouse.active = false;
-      lastActiveTime = performance.now();
     };
 
-    container.addEventListener("mousemove", handleMouseMove);
-    container.addEventListener("mouseleave", handleMouseLeave);
+    container.addEventListener("pointermove", handlePointerMove);
+    container.addEventListener("pointerleave", handlePointerLeave);
+    container.addEventListener("pointercancel", handlePointerLeave);
 
     // Constants
     const BASE_SIZE = 120;
@@ -210,7 +216,7 @@ export default function LiquidReveal({
         const dy = last ? smooth.y - last.y : 999;
         const dist = Math.sqrt(dx * dx + dy * dy);
         const velocity = Math.min(dist, 60);
-        const size = BASE_SIZE + (1 - velocity / 60) * 40;
+        const size = (BASE_SIZE + (1 - velocity / 60) * 40) * brushScale;
 
         if (!last || dist > 3) {
           trail.push({ x: smooth.x, y: smooth.y, size, age: 0 });
@@ -243,7 +249,7 @@ export default function LiquidReveal({
         smooth.x += (autoX - smooth.x) * LERP;
         smooth.y += (autoY - smooth.y) * LERP;
 
-        const size = BASE_SIZE * 0.8; // Ukuran sedikit lebih kecil untuk efek idle
+        const size = BASE_SIZE * 0.8 * brushScale; // Ukuran sedikit lebih kecil untuk efek idle
         trail.push({ x: smooth.x, y: smooth.y, size, age: 0 });
         while (trail.length > TRAIL_LENGTH) trail.shift();
       }
@@ -295,30 +301,24 @@ export default function LiquidReveal({
     return () => {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("resize", resize);
-      container.removeEventListener("mousemove", handleMouseMove);
-      container.removeEventListener("mouseleave", handleMouseLeave);
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("pointerleave", handlePointerLeave);
+      container.removeEventListener("pointercancel", handlePointerLeave);
     };
   }, [topImage]);
 
   return (
-    <div id="about-section" className="relative w-full h-screen overflow-hidden bg-black flex flex-col md:flex-row mt-48">
+    <div id="about-section" className="relative w-full md:h-screen overflow-hidden bg-black flex flex-col md:flex-row mt-24 md:mt-48">
       {/* AREA KIRI: Ruang untuk Teks */}
-      <div className="w-full md:w-[40%] h-auto md:h-full flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12 md:py-0 z-10 pointer-events-none">
-        <h1 className="text-[#e8dcc8] text-5xl md:text-6xl lg:text-[150px] font-chomsky leading-tight">
+      <div className="w-full md:w-[40%] h-auto md:h-full flex flex-col justify-center px-8 md:px-16 lg:px-24 pt-12 pb-6 md:py-0 z-10 pointer-events-none">
+        <h1 className="text-cream text-5xl md:text-6xl lg:text-[150px] font-chomsky leading-tight">
           RIZANO
         </h1>
-        {/* <h1 className="text-[#e8dcc8] text-5xl md:text-6xl lg:text-[200px] font-chomsky mb-6 leading-tight">
-          ANO
-        </h1> */}
-        <p className="text-[#e8dcc8] opacity-70 text-lg md:text-xl font-light max-w-md mb-80">
+        <p className="text-cream opacity-70 text-lg md:text-xl font-light max-w-md md:mb-80">
           A Software Engineer dedicated to crafting{" "}
           <TextScramble
-            className="text-[#e8dcc8] font-semibold"
-            phrases={[
-              "interactive websites.",
-              "intelligent AI solutions.",
-              "autonomous robotics systems.",
-            ]}
+            className="text-cream font-semibold"
+            phrases={ABOUT_PHRASES}
           />
         </p>
       </div>
@@ -326,7 +326,7 @@ export default function LiquidReveal({
       {/* AREA KANAN: Efek Liquid Reveal */}
       <div
         ref={containerRef}
-        className="relative w-full md:w-[60%] h-full grow"
+        className="relative w-full md:w-[60%] h-[75vh] md:h-full md:grow"
       >
         {/* BOTTOM LAYER: always visible background */}
         <div className="absolute inset-0 w-full h-full">
